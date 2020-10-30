@@ -73,34 +73,52 @@ def parse_input():
 
 def solve(num_tasks, tasks, max_deadline):
 
+    # just to test
+    tasks_ki = [t[KI_INDEX] for t in tasks[:-1]]
+    accumulated_ki = list(accumulate(tasks_ki, initial=0))
+    print(accumulated_ki)
+
     # intialize variables x, xijt -> fragment j from tasks i is executed and starts at time t
-    # x = [[[(t+1) + (j*max_deadline) + (i*acumulated_ki*max_deadline)  for t in range(max_deadline)] for j in range(tasks[i][KI_INDEX])] for i in range(num_tasks)]
+    x = [
+        [
+            [
+                (t + 1)
+                + (j * (max_deadline - 1))
+                + (accumulated_ki[i] * (max_deadline - 1))
+                for t in range(max_deadline - 1)
+            ]
+            for j in range(tasks[i][KI_INDEX])
+        ]
+        for i in range(num_tasks)
+    ]
+
+    print(x)
 
     # IN HERE IS JUST A MAXSAT EXAMPLE CODE
 
     # initialize variables: vij -> vertex i is colored with j
     # v = [[(i+1) + j * N for j in range(k)] for i in range(N)]
 
-    solver = RC2(WCNF())
-    max_var = 10  # the problem has 10 variables
+    # solver = RC2(WCNF())
+    # max_var = 10  # the problem has 10 variables
 
-    # HARD CLAUSES
-    constraint = CardEnc.atmost(lits=[1, 2, 3, 4, 5], bound=1, top_id=max_var)
-    for clause in constraint.clauses:
-        solver.add_clause(clause)
-        max_var = max(clause + [max_var])
+    # # HARD CLAUSES
+    # constraint = CardEnc.atmost(lits=[1, 2, 3, 4, 5], bound=1, top_id=max_var)
+    # for clause in constraint.clauses:
+    #     solver.add_clause(clause)
+    #     max_var = max(clause + [max_var])
 
-    constraint = CardEnc.atleast(lits=[4, 5, 6, 7, 8], bound=3, top_id=max_var)
-    for clause in constraint.clauses:
-        solver.add_clause(clause)
-        max_var = max(clause + [max_var])
+    # constraint = CardEnc.atleast(lits=[4, 5, 6, 7, 8], bound=3, top_id=max_var)
+    # for clause in constraint.clauses:
+    #     solver.add_clause(clause)
+    #     max_var = max(clause + [max_var])
 
-    # SOFT CLAUSES
-    for i, j in zip(range(10), range(1, 11)):
-        solver.add_clause([i, j], weight=1)
+    # # SOFT CLAUSES
+    # for i, j in zip(range(10), range(1, 11)):
+    #     solver.add_clause([i, j], weight=1)
 
-    print("Model", solver.compute())
-    print("Cost:", solver.cost)
+    # print("Model", solver.compute())
+    # print("Cost:", solver.cost)
 
 
 def produce_output(solution):
@@ -113,6 +131,6 @@ if __name__ == "__main__":
 
     num_tasks, tasks, max_deadline = parse_input()
 
-    # solve(tasks)
+    solve(num_tasks, tasks, max_deadline)
 
-    produce_output(tasks, max_deadline)
+    produce_output(tasks)
