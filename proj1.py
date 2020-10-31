@@ -1,11 +1,12 @@
 from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
-from pysat.card import CardEnc
+from pysat.card import CardEnc, EncType
 from itertools import accumulate
 
 import sys
 import fileinput
 import operator
+import math
 
 RI_INDEX = 0
 PI_INDEX = 1
@@ -29,8 +30,6 @@ def parse_input():
 
     # Each task will be represented as: (ri, pi, di, ki, [fragments], [dependencies])
     tasks = []
-    # Each fragment has a corresponding earliest/lates starting time, represented as a tuple: (EST,LST)
-    frag_start_time = []
 
     max_deadline = 0
 
@@ -49,7 +48,7 @@ def parse_input():
 
         max_deadline = max(max_deadline, task_variables[DI_INDEX])
 
-        # Each fragment j of the task i is a tuple: (pij, EST, LST)
+        # Each fragment j of the task i is a tuple: (pij, EST, LST) where EST/LST respresents the earliest/latest start time of j
         fragments = []
         current_est = task_variables[RI_INDEX]
         task_lst = list(
@@ -57,12 +56,12 @@ def parse_input():
         )  # 6 [2,1,1] [6-2,6-2-1,6-2-1-1]
         task_lst = task_lst[1:]
 
-        for i in range(task_variables[KI_INDEX]):
+        for j in range(task_variables[KI_INDEX]):
 
-            pij = t_frags[i]
+            pij = t_frags[j]
 
-            # task_lst is reversed so we must access it backwards with -(i+1)
-            frag = (pij, current_est, task_lst[-(i + 1)])
+            # task_lst is reversed so we must access it backwards with -(j+1)
+            frag = (pij, current_est, task_lst[-(j + 1)])
             fragments.append(frag)
 
             current_est += pij
@@ -87,10 +86,8 @@ def solve(tasks, max_deadline, accumulated_ki):
     x = [
         [
             [
-                (t + 1)
-                + (j * (max_deadline - 1))
-                + (accumulated_ki[i] * (max_deadline - 1))
-                for t in range(max_deadline - 1)
+                (t + 1) + (j * max_deadline) + (accumulated_ki[i] * max_deadline)
+                for t in range(max_deadline)
             ]
             for j in range(tasks[i][KI_INDEX])
         ]
@@ -101,11 +98,8 @@ def solve(tasks, max_deadline, accumulated_ki):
 
     # IN HERE IS JUST A MAXSAT EXAMPLE CODE
 
-    # initialize variables: vij -> vertex i is colored with j
-    # v = [[(i+1) + j * N for j in range(k)] for i in range(N)]
-
-    # solver = RC2(WCNF())
-    # max_var = 10  # the problem has 10 variables
+    solver = RC2(WCNF())
+    max_var = x[-1][-1][-1]  # the highest variable is the last variable in x
 
     # # HARD CLAUSES
     # constraint = CardEnc.atmost(lits=[1, 2, 3, 4, 5], bound=1, top_id=max_var)
@@ -118,12 +112,74 @@ def solve(tasks, max_deadline, accumulated_ki):
     #     solver.add_clause(clause)
     #     max_var = max(clause + [max_var])
 
+    for i in range(num_tasks):
+
+        ki = tasks[i][KI_INDEX]
+        for j in range(ki):
+
+            (pij, ESTj, LSTj) = tasks[i][FRAGMENTS_INDEX][j]
+
+            # CONSTRAINT (2):
+            # If a fragment j starts at t, there can't be none starting at the following t': X_tij -> ~X_t'i'j'  (with t' in {t+1 .. t+pij-1} and in {EST_j' .. LST_j'})
+            print("CONSTRAINT 2")
+            for t in range(ESTj, LSTj + 1):
+
+                for t2 in range(t + 1, t + pij):
+
+                    for i2 in range(num_tasks):
+                        ki2 = tasks[i2][KI_INDEX]
+                        for j2 in range(ki2):
+                            (_, ESTj2, LSTj2) = tasks[i2][FRAGMENTS_INDEX][j2]
+
+                            if ESTj2 <= t2 <= LSTj2:
+                                solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
+                                print([-x[i][j][t], -x[i2][j2][t2]])
+
+        # CONSTRAINT (4)
+        # If a tasks first fragment is executed, the last one must be as well: (X_t,i,1 ) -> (X_t+pi1,i,ki V .. V X_LSTki,i,ki) [with ki > 1, and for all t in {EST_i1 .. LST_ii}]
+        print("CONSTRAINT 4")
+        if ki > 1:
+            (pi_1, EST_1, LST_1) = tasks[i][FRAGMENTS_INDEX][0]
+            (pi_ki, EST_ki, LST_ki) = tasks[i][FRAGMENTS_INDEX][-1]
+
+            for t in range(EST_1, LST_1 + 1):
+                # ki cannot start before frag 1 is finished (t+pi1) or before EST_ki
+                ki_min_start_time = max(t + pi_1, EST_ki)
+
+                possible_kis = [
+                    x[i][-1][t2] for t2 in range(ki_min_start_time, LST_ki + 1)
+                ]
+                # ~X_t,i,1  V  X_mint2,i,ki V .. V X_LSTki,i,ki
+                const = [-x[i][0][t]] + possible_kis
+                solver.add_clause(const)
+                print(const)
+
+    # CONSTRAINT (2.5)
+    # At most, only one fragment starts at each time t: Sum(X_ijt) <= 1  [for i in {i..n}, and j in {1..ki} such that EST_j <= t <= LST_j]
+    print("CONSTRAINT 2.5")
+    for t in range(max_deadline):
+
+        frags_starting_at_t = [
+            x[i][j][t]
+            for i in range(num_tasks)
+            for j in range(tasks[i][KI_INDEX])
+            if tasks[i][FRAGMENTS_INDEX][j][1] <= t <= tasks[i][FRAGMENTS_INDEX][j][2]
+        ]
+
+        enc = CardEnc.atmost(
+            lits=frags_starting_at_t, bound=1, top_id=max_var, encoding=EncType.pairwise
+        )
+        for clause in enc.clauses:
+            solver.add_clause(clause)
+            max_var = max(clause + [max_var])
+            print(clause)
+
     # # SOFT CLAUSES
     # for i, j in zip(range(10), range(1, 11)):
     #     solver.add_clause([i, j], weight=1)
 
-    # print("Model", solver.compute())
-    # print("Cost:", solver.cost)
+    print("Model", solver.compute())
+    print("Cost:", solver.cost)
 
 
 def produce_output(solution):
