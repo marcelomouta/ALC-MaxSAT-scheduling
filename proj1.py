@@ -34,7 +34,13 @@ def parse_input():
 
     max_deadline = 0
 
+    # list containing the accumulated sum of ki at task i
+    accumulated_ki = []
+    ki_sum = 0
+
     for i in range(num_tasks):
+
+        accumulated_ki.append(ki_sum)
 
         description = task_descriptions[i]
 
@@ -68,17 +74,14 @@ def parse_input():
 
         tasks.append(tuple(task_variables))
 
-    return tasks, max_deadline
+        ki_sum += task_variables[KI_INDEX]
+
+    return tasks, max_deadline, accumulated_ki
 
 
-def solve(tasks, max_deadline):
+def solve(tasks, max_deadline, accumulated_ki):
 
     num_tasks = len(tasks)
-
-    # just to test
-    tasks_ki = [t[KI_INDEX] for t in tasks[:-1]]
-    accumulated_ki = list(accumulate(tasks_ki, initial=0))
-    print(accumulated_ki)
 
     # intialize variables x, xijt -> fragment j from tasks i is executed and starts at time t
     x = [
@@ -131,8 +134,8 @@ def produce_output(solution):
 
 if __name__ == "__main__":
 
-    tasks, max_deadline = parse_input()
+    tasks, max_deadline, accumulated_ki = parse_input()
 
-    solve(tasks, max_deadline)
+    solve(tasks, max_deadline, accumulated_ki)
 
     produce_output(tasks)
