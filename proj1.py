@@ -64,11 +64,7 @@ def parse_input():
 
             pij = t_frags[j]
 
-<<<<<<< HEAD
             # task_lst is reversed so we must access it backwards with -(j+1)
-=======
-            # task_lst is reversed so we must access it backwards with -(i+1)
->>>>>>> 5aa181f488c044aec1e4de75e5301ef392fda86d
             frag = (pij, current_est, task_lst[-(j + 1)])
             fragments.append(frag)
 
@@ -104,7 +100,6 @@ def solve(tasks, max_deadline, accumulated_ki):
     print(x)
 
     solver = RC2(WCNF())
-    max_var = x[-1][-1][-1]  # the last element
 
     # Each task will be represented as: (ri, pi, di, ki, [fragments], [dependencies])
     # Each fragment j of the task i is a tuple: (pij, EST, LST)
@@ -121,8 +116,8 @@ def solve(tasks, max_deadline, accumulated_ki):
             for t in range(max_deadline):
                 if est <= t <= lst:
                     continue
-                # solver.add(x[i][j][t] * -1)
-                print(x[i][j][t] * -1)
+                solver.add_clause([x[i][j][t] * -1])
+                # print(x[i][j][t] * -1)
 
     # Constraint 3
     # For each i in {1..n},  and d in dependencies_i, and t in {ESTi1 .. LSTi1} :
@@ -148,8 +143,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 for dki in range(est_ki, last + 1):
                     lits.append(x[dep][ki][dki])
 
-                print(lits)
-                # solver.add(lits)
+                # print(lits)
+                solver.add_clause(lits)
 
     # Constraint 5
     # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij .. LST_ij} :
@@ -167,24 +162,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 for k in range(est, t - pij + 1):
                     lits.append(x[i][j][k])
 
-                print(lits)
-                # solver.add(lits)
-
-    # IN HERE IS JUST A MAXSAT EXAMPLE CODE
-
-    solver = RC2(WCNF())
-    max_var = x[-1][-1][-1]  # the highest variable is the last variable in x
-
-    # # HARD CLAUSES
-    # constraint = CardEnc.atmost(lits=[1, 2, 3, 4, 5], bound=1, top_id=max_var)
-    # for clause in constraint.clauses:
-    #     solver.add_clause(clause)
-    #     max_var = max(clause + [max_var])
-
-    # constraint = CardEnc.atleast(lits=[4, 5, 6, 7, 8], bound=3, top_id=max_var)
-    # for clause in constraint.clauses:
-    #     solver.add_clause(clause)
-    #     max_var = max(clause + [max_var])
+                # print(lits)
+                solver.add_clause(lits)
 
     for i in range(num_tasks):
 
@@ -241,14 +220,16 @@ def solve(tasks, max_deadline, accumulated_ki):
         ]
 
         enc = CardEnc.atmost(
-            lits=frags_starting_at_t, bound=1, top_id=max_var, encoding=EncType.pairwise
+            lits=frags_starting_at_t,
+            bound=1,
+            top_id=x[-1][-1][-1],
+            encoding=EncType.pairwise,
         )
         for clause in enc.clauses:
             solver.add_clause(clause)
-            max_var = max(clause + [max_var])
-            print(clause)
 
     # # SOFT CLAUSES
+
     # for i, j in zip(range(10), range(1, 11)):
     #     solver.add_clause([i, j], weight=1)
 
