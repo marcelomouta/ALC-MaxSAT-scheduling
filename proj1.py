@@ -68,10 +68,12 @@ def parse_input():
 
         tasks.append(tuple(task_variables))
 
-    return num_tasks, tasks, max_deadline
+    return tasks, max_deadline
 
 
-def solve(num_tasks, tasks, max_deadline):
+def solve(tasks, max_deadline):
+
+    num_tasks = len(tasks)
 
     # just to test
     tasks_ki = [t[KI_INDEX] for t in tasks[:-1]]
@@ -129,8 +131,8 @@ def produce_output(solution):
 
 if __name__ == "__main__":
 
-    num_tasks, tasks, max_deadline = parse_input()
+    tasks, max_deadline = parse_input()
 
-    solve(num_tasks, tasks, max_deadline)
+    solve(tasks, max_deadline)
 
     produce_output(tasks)
