@@ -6,7 +6,6 @@ from itertools import accumulate
 import sys
 import fileinput
 import operator
-import math
 
 RI_INDEX = 0
 PI_INDEX = 1
@@ -14,6 +13,8 @@ DI_INDEX = 2
 KI_INDEX = 3
 FRAGMENTS_INDEX = 4
 DEPENDENCIES_INDEX = 5
+EST_INDEX = 1
+LST_INDEX = 2
 
 
 def parse_input():
@@ -109,7 +110,9 @@ def solve(tasks, max_deadline, accumulated_ki):
             x[i][j][t]
             for i in range(num_tasks)
             for j in range(tasks[i][KI_INDEX])
-            if tasks[i][FRAGMENTS_INDEX][j][1] <= t <= tasks[i][FRAGMENTS_INDEX][j][2]
+            if tasks[i][FRAGMENTS_INDEX][j][EST_INDEX]
+            <= t
+            <= tasks[i][FRAGMENTS_INDEX][j][LST_INDEX]
         ]
 
         enc = CardEnc.atmost(
