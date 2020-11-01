@@ -50,7 +50,8 @@ def parse_input():
         ki_sum += task_variables[KI_INDEX]
         accumulated_ki.append(ki_sum)
 
-        # Each fragment j of the task i is a tuple: (pij, EST, LST) where EST/LST respresents the earliest/latest start time of j
+        # Each fragment j of the task i is a tuple: (pij, EST, LST)
+        # where EST/LST respresents the earliest/latest start time of j
         fragments = []
         current_est = task_variables[RI_INDEX]
         task_lst = list(
@@ -82,7 +83,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
     num_tasks = len(tasks)
 
-    # intialize variables x, xijt -> fragment j from tasks i is executed and starts at time t
+    # intialize variables x, x_ijt -> fragment j from tasks i is executed and starts at time t
     x = [
         [
             [
@@ -99,6 +100,27 @@ def solve(tasks, max_deadline, accumulated_ki):
     # Each task will be represented as: (ri, pi, di, ki, [fragments], [dependencies])
     # Each fragment j of the task i is a tuple: (pij, EST, LST)
 
+    # CONSTRAINT (0)
+    # Sum(X_ijt) <= 1  [for i in {i..n}, and j in {1..ki} such that EST_ij <= t <= LST_ij]
+    # Explanation: At most, only one fragment starts at each time t:
+    for t in range(max_deadline):
+
+        frags_starting_at_t = [
+            x[i][j][t]
+            for i in range(num_tasks)
+            for j in range(tasks[i][KI_INDEX])
+            if tasks[i][FRAGMENTS_INDEX][j][1] <= t <= tasks[i][FRAGMENTS_INDEX][j][2]
+        ]
+
+        enc = CardEnc.atmost(
+            lits=frags_starting_at_t,
+            bound=1,
+            top_id=x[-1][-1][-1],
+            encoding=EncType.pairwise,
+        )
+        for clause in enc.clauses:
+            solver.add_clause(clause)
+
     for i in range(num_tasks):
 
         ki = tasks[i][KI_INDEX]
@@ -108,7 +130,7 @@ def solve(tasks, max_deadline, accumulated_ki):
             (pij, est, lst) = frag_j
 
             # CONSTRAINT (1):
-            # For each i in {1..n}, and j in {1..ki}, and t int {0..EST_j -1} U {LST_j +1  .. last_deadline - 1} : ~X_tij
+            # For each i in {1..n}, and j in {1..ki}, and t int {0..EST_ij -1} U {LST_ij +1  .. last_deadline - 1} : ~X_ijt
             # Explanation: Each fragment of a task may only start between its EST and LST
             for t in range(max_deadline):
                 if est <= t <= lst:
@@ -116,7 +138,7 @@ def solve(tasks, max_deadline, accumulated_ki):
                 solver.add_clause([x[i][j][t] * -1])
 
             # CONSTRAINT (2):
-            # X_tij -> ~X_t'i'j'  (with t' in {t+1 .. t+pij-1} and in {EST_j' .. LST_j'})
+            # X_ijt -> ~X_i'j't'  (with t' in {t+1 .. t+pij-1} and in {EST_ij' .. LST_ij'})
             # Explanation: If a fragment j starts at t, there can't be none starting at the following t'
             for t in range(est, lst + 1):
 
@@ -132,7 +154,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
         # CONSTRAINT (3):
         # For each i in {1..n},  and d in dependencies_i, and t in {ESTi1 .. LSTi1} :
-        # (X_t,i,1) -> (X_ESTki',d,ki' V .. V X_t-pki',d,ki')
+        # (X_t,i,1) -> (X_d,ki',ESTki' V .. V X_d,ki',t-pki')
         # Explanation: If a task has a dependency, its' first fragment may only start after the last fragment of the dependency finished
         frag_1 = tasks[i][FRAGMENTS_INDEX][0]
         (_, est, lst) = frag_1
@@ -155,7 +177,7 @@ def solve(tasks, max_deadline, accumulated_ki):
                 solver.add_clause(lits)
 
         # CONSTRAINT (4)
-        # (X_t,i,1 ) -> (X_t+pi1,i,ki V .. V X_LSTki,i,ki) [with ki > 1, and for all t in {EST_i1 .. LST_ii}]
+        # (X_i,1,t) -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki) [with ki > 1, and for all t in {EST_i1 .. LST_i1}]
         # Explanation: If a tasks first fragment is executed, the last one must be as well:
         if ki > 1:
             (pi_1, EST_1, LST_1) = tasks[i][FRAGMENTS_INDEX][0]
@@ -174,7 +196,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
         # CONSTRAINT (5):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
-        # X_t,i,j+1 -> (X_ESTij,i,j V .. V X_t-pij,i,j)
+        # X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
         # Explanation: If a fragment j+1 is executed, fragment j is also executed
         for j in range(tasks[i][KI_INDEX] - 1):
             frag_j = tasks[i][FRAGMENTS_INDEX][j]
@@ -189,27 +211,6 @@ def solve(tasks, max_deadline, accumulated_ki):
                     lits.append(x[i][j][k])
 
                 solver.add_clause(lits)
-
-    # CONSTRAINT (2.5)
-    # Sum(X_ijt) <= 1  [for i in {i..n}, and j in {1..ki} such that EST_j <= t <= LST_j]
-    # Explanation: At most, only one fragment starts at each time t:
-    for t in range(max_deadline):
-
-        frags_starting_at_t = [
-            x[i][j][t]
-            for i in range(num_tasks)
-            for j in range(tasks[i][KI_INDEX])
-            if tasks[i][FRAGMENTS_INDEX][j][1] <= t <= tasks[i][FRAGMENTS_INDEX][j][2]
-        ]
-
-        enc = CardEnc.atmost(
-            lits=frags_starting_at_t,
-            bound=1,
-            top_id=x[-1][-1][-1],
-            encoding=EncType.pairwise,
-        )
-        for clause in enc.clauses:
-            solver.add_clause(clause)
 
     # SOFT CLAUSES
     # For each i in {1..n} and some j in {1..ki} and t in {ESTij .. LSTij} : Sum(X_ijt) >= 1
