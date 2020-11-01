@@ -15,6 +15,7 @@ FRAGMENTS_INDEX = 4
 DEPENDENCIES_INDEX = 5
 EST_INDEX = 1
 LST_INDEX = 2
+TMP_WCNF_FILE = "tmp_schedule.wcnf"
 
 
 def parse_input():
@@ -98,6 +99,8 @@ def solve(tasks, max_deadline, accumulated_ki):
 
     solver = RC2(WCNF())
 
+    wcnf = WCNF()
+
     # Each task will be represented as: (ri, pi, di, ki, [fragments], [dependencies])
     # Each fragment j of the task i is a tuple: (pij, EST, LST)
 
@@ -121,8 +124,9 @@ def solve(tasks, max_deadline, accumulated_ki):
             top_id=x[-1][-1][-1],
             encoding=EncType.pairwise,
         )
-        for clause in enc.clauses:
-            solver.add_clause(clause)
+        # for clause in enc.clauses:
+        #     solver.add_clause(clause)
+        wcnf.extend(enc.clauses)
 
     for i in range(num_tasks):
 
@@ -143,8 +147,9 @@ def solve(tasks, max_deadline, accumulated_ki):
                 top_id=x[-1][-1][-1],
                 encoding=EncType.pairwise,
             )
-            for clause in enc.clauses:
-                solver.add_clause(clause)
+            # for clause in enc.clauses:
+            #     solver.add_clause(clause)
+            wcnf.extend(enc.clauses)
 
             # CONSTRAINT (1):
             # For each i in {1..n}, and j in {1..ki}, and t int {0..EST_ij -1} U {LST_ij +1  .. last_deadline - 1} : ~X_ijt
@@ -152,7 +157,8 @@ def solve(tasks, max_deadline, accumulated_ki):
             for t in range(max_deadline):
                 if est <= t <= lst:
                     continue
-                solver.add_clause([x[i][j][t] * -1])
+                # solver.add_clause([x[i][j][t] * -1])
+                wcnf.append([-x[i][j][t]])
 
             # CONSTRAINT (2):
             # X_ijt -> ~X_i'j't'  (with t' in {t+1 .. t+pij-1} and in {EST_ij' .. LST_ij'})
@@ -169,7 +175,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                                 (_, est2, lst2) = tasks[i2][FRAGMENTS_INDEX][j2]
 
                                 if est2 <= t2 <= lst2:
-                                    solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
+                                    # solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
+                                    wcnf.append([-x[i][j][t], -x[i2][j2][t2]])
 
         # CONSTRAINT (3):
         # For each i in {1..n},  and d in dependencies_i, and t in {ESTi1 .. LSTi1} :
@@ -193,7 +200,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 for dki in range(est_ki, last + 1):
                     lits.append(x[dep][ki][dki])
 
-                solver.add_clause(lits)
+                # solver.add_clause(lits)
+                wcnf.append(lits)
 
         # CONSTRAINT (4)
         # (X_i,1,t) -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki) [with ki > 1, and for all t in {EST_i1 .. LST_i1}]
@@ -211,7 +219,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 ]
                 # ~X_t,i,1  V  X_mint2,i,ki V .. V X_LSTki,i,ki
                 const = [-x[i][0][t]] + possible_kis
-                solver.add_clause(const)
+                # solver.add_clause(const)
+                wcnf.append(const)
 
         # CONSTRAINT (5):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
@@ -230,7 +239,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 for k in range(est, last + 1):
                     lits.append(x[i][j][k])
 
-                solver.add_clause(lits)
+                # solver.add_clause(lits)
+                wcnf.append(lits)
 
     # SOFT CLAUSES
     # For each i in {1..n} and some j in {1..ki} and t in {ESTij .. LSTij} : Sum(X_ijt) >= 1
@@ -238,10 +248,13 @@ def solve(tasks, max_deadline, accumulated_ki):
     for i in range(num_tasks):
         (_, EST_ki, LST_ki) = tasks[i][FRAGMENTS_INDEX][-1]
         lits = [x[i][-1][t] for t in range(EST_ki, LST_ki + 1)]
-        solver.add_clause(lits, weight=1)
+        # solver.add_clause(lits, weight=1)
+        wcnf.append(lits, weight=1)
 
-    sol = solver.compute()
-    scheduled_tasks = num_tasks - solver.cost
+    # sol = solver.compute()
+    # scheduled_tasks = num_tasks - solver.cost
+    wcnf.to_file(TMP_WCNF_FILE)
+    sol, scheduled_tasks = "", ""
 
     return sol, scheduled_tasks
 
@@ -278,4 +291,4 @@ if __name__ == "__main__":
 
     solution, scheduled_tasks = solve(tasks, max_deadline, accumulated_ki)
 
-    produce_output(solution, scheduled_tasks, accumulated_ki)
+    # produce_output(solution, scheduled_tasks, accumulated_ki)
