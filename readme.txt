@@ -77,5 +77,7 @@ For all i in {1..n} and some j in {1..ki} and t in {EST_ij .. LST_ij}:
         Sum(X_ijt) >= 1
 Explanation: At least a fragment of each task is executed in its' possible time
 
-Given this formulation we consider that these constraints are sufficient to produce correct output, that is, to show the maximum number of scheduled tasks.
-We also aimed to accurately restrict our clauses so that the efficiency of the solution could be improved. 
+Given this formulation we consider that these constraints are sufficient to 
+produce correct output, that is, to show the maximum number of scheduled tasks.
+We also aimed to accurately restrict our clauses so that the efficiency of the 
+solution could be improved. 
