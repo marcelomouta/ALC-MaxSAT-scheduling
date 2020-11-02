@@ -36,33 +36,38 @@ For all i in {i..n}, and j in {1..ki} and EST_ij <= t <= LST_ij:
         Sum(X_ijt) <= 1
 Explanation: At most, only one fragment starts at each time t
 
-CONSTRAINT (1):
+CONSTRAINT (1)
+For all i in {1..n},  for all j in {1..ki} :
+        Sum(X_i,j,EST_ij, ... , X_i,j,LST_ij) <= 1
+Explanation: Each fragment may only be executed at most once
+
+CONSTRAINT (2):
 For all i in {1..n}, and j in {1..ki}, and t in {0..EST_ij - 1} U
 {LST_ij + 1  .. max_deadline - 1} :
         ~X_ijt
 Explanation: Each fragment of a task may only start between its EST and LST
 
-CONSTRAINT (2):
+CONSTRAINT (3):
 For all i, i' in {1..n}, j, j' in {1..ki}, t' in {t + 1 .. t + pij -1} and t in 
 {EST_ij' .. LST_ij'}:
         X_ijt -> ~X_i'j't' 
 Explanation: If a fragment j starts at t, there can't be a fragment j' starting 
 at the following t' (while j is still being executed)
 
-CONSTRAINT (3):
+CONSTRAINT (4):
 For all i in {1..n}, d in dependencies_i, and t in {EST_i1 .. LST_i1} :
     X_i,1,t -> (X_d,ki',ESTki' V .. V X_d,ki',t-pki')
 Explanation: If a task i has a dependency d, its' first fragment X_i,1,t may 
 only start after the last fragment, ki', of the dependency finished at a time 
 in t
 
-CONSTRAINT (4):
+CONSTRAINT (5):
 With ki > 1, and for all i in {1..n} and t in {EST_i1 .. LST_i1}
     X_i,1,t -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki)
 Explanation: If a tasks first fragment is executed, its' last fragment must also
 be executed, in their possible time 
 
-CONSTRAINT (5):
+CONSTRAINT (6):
 For all i in {1..n}, j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
     X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
 Explanation: If a fragment j+1 is executed, fragment j is also executed, in 
@@ -72,7 +77,7 @@ their possible time
 Our solution only resorted to one constraint that produces soft clauses, which 
 is the following:
 
-CONSTRAINT (6):
+CONSTRAINT (7):
 For all i in {1..n} and some j in {1..ki} and t in {EST_ij .. LST_ij}:
         Sum(X_ijt) >= 1
 Explanation: At least a fragment of each task is executed in its' possible time

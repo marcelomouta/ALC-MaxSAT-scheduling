@@ -132,8 +132,9 @@ def solve(tasks, max_deadline, accumulated_ki):
             frag_j = tasks[i][FRAGMENTS_INDEX][j]
             (pij, est, lst) = frag_j
 
-            # NEW TEST CONSTRAINT
-            # For all i in {1..n},  for all j in {1..ki} : Sum(X_ijt) <= 1 [with t in {EST_ij .. LST_ij}]
+            # CONSTRAINT (1)
+            # For all i in {1..n},  for all j in {1..ki} :
+            # Sum(X_i,j,EST_ij, ... , X_i,j,LST_ij) <= 1
             # Explanation: Each fragment may only be executed at most once
             frag_possible_ts = [x[i][j][t] for t in range(est, lst + 1)]
 
@@ -146,7 +147,7 @@ def solve(tasks, max_deadline, accumulated_ki):
             for clause in enc.clauses:
                 solver.add_clause(clause)
 
-            # CONSTRAINT (1):
+            # CONSTRAINT (2):
             # For each i in {1..n}, and j in {1..ki}, and t int {0..EST_ij -1} U {LST_ij +1  .. last_deadline - 1} : ~X_ijt
             # Explanation: Each fragment of a task may only start between its EST and LST
             for t in range(max_deadline):
@@ -154,7 +155,7 @@ def solve(tasks, max_deadline, accumulated_ki):
                     continue
                 solver.add_clause([x[i][j][t] * -1])
 
-            # CONSTRAINT (2):
+            # CONSTRAINT (3):
             # X_ijt -> ~X_i'j't'  (with t' in {t+1 .. t+pij-1} and in {EST_ij' .. LST_ij'})
             # Explanation: If a fragment j starts at t, there can't be none starting at the following t'
             for t in range(est, lst + 1):
@@ -171,7 +172,7 @@ def solve(tasks, max_deadline, accumulated_ki):
                                 if est2 <= t2 <= lst2:
                                     solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
 
-        # CONSTRAINT (3):
+        # CONSTRAINT (4):
         # For each i in {1..n},  and d in dependencies_i, and t in {ESTi1 .. LSTi1} :
         # (X_t,i,1) -> (X_d,ki',ESTki' V .. V X_d,ki',t-pki')
         # Explanation: If a task has a dependency, its' first fragment may only start after the last fragment of the dependency finished
@@ -195,7 +196,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
                 solver.add_clause(lits)
 
-        # CONSTRAINT (4)
+        # CONSTRAINT (5)
         # (X_i,1,t) -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki) [with ki > 1, and for all t in {EST_i1 .. LST_i1}]
         # Explanation: If a tasks first fragment is executed, the last one must be as well:
         if ki > 1:
@@ -213,7 +214,7 @@ def solve(tasks, max_deadline, accumulated_ki):
                 const = [-x[i][0][t]] + possible_kis
                 solver.add_clause(const)
 
-        # CONSTRAINT (5):
+        # CONSTRAINT (6):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
         # X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
         # Explanation: If a fragment j+1 is executed, fragment j is also executed
