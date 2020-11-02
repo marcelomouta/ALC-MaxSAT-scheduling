@@ -132,6 +132,20 @@ def solve(tasks, max_deadline, accumulated_ki):
             frag_j = tasks[i][FRAGMENTS_INDEX][j]
             (pij, est, lst) = frag_j
 
+            # NEW TEST CONSTRAINT
+            # For all i in {1..n},  for all j in {1..ki} : Sum(X_ijt) <= 1 [with t in {EST_ij .. LST_ij}]
+            # Explanation: Each fragment may only be executed at most once
+            frag_possible_ts = [x[i][j][t] for t in range(est, lst + 1)]
+
+            enc = CardEnc.atmost(
+                lits=frag_possible_ts,
+                bound=1,
+                top_id=x[-1][-1][-1],
+                encoding=EncType.pairwise,
+            )
+            for clause in enc.clauses:
+                solver.add_clause(clause)
+
             # CONSTRAINT (1):
             # For each i in {1..n}, and j in {1..ki}, and t int {0..EST_ij -1} U {LST_ij +1  .. last_deadline - 1} : ~X_ijt
             # Explanation: Each fragment of a task may only start between its EST and LST
@@ -150,10 +164,12 @@ def solve(tasks, max_deadline, accumulated_ki):
                     for i2 in range(num_tasks):
                         ki2 = tasks[i2][KI_INDEX]
                         for j2 in range(ki2):
-                            (_, est2, lst2) = tasks[i2][FRAGMENTS_INDEX][j2]
+                            if (i2, j2) != (i, j):
 
-                            if est2 <= t2 <= lst2:
-                                solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
+                                (_, est2, lst2) = tasks[i2][FRAGMENTS_INDEX][j2]
+
+                                if est2 <= t2 <= lst2:
+                                    solver.add_clause([-x[i][j][t], -x[i2][j2][t2]])
 
         # CONSTRAINT (3):
         # For each i in {1..n},  and d in dependencies_i, and t in {ESTi1 .. LSTi1} :
@@ -210,7 +226,8 @@ def solve(tasks, max_deadline, accumulated_ki):
                 lits = []
                 lits.append(x[i][j + 1][t] * -1)
 
-                for k in range(est, t - pij + 1):
+                last = min(t - pij, lst)
+                for k in range(est, last + 1):
                     lits.append(x[i][j][k])
 
                 solver.add_clause(lits)
