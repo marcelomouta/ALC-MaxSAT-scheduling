@@ -56,7 +56,7 @@ def parse_input():
         fragments = []
         current_est = task_variables[RI_INDEX]
         task_lst = list(
-            accumulate(reversed(t_frags), operator.sub, initial=description[DI_INDEX])
+            accumulate(reversed(t_frags + [description[DI_INDEX]]), operator.sub)
         )  # 6 [2,1,1] [6-2,6-2-1,6-2-1-1]
         task_lst = task_lst[1:]
 
