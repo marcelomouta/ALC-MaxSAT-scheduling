@@ -1,3 +1,10 @@
+"""
+ALC 1st Project – Single Machine Scheduling with MaxSAT
+
+Group 9:
+89513 Nikoletta Matsur
+98812 Marcelo Mouta
+"""
 from pysat.examples.rc2 import RC2
 from pysat.formula import WCNF
 from pysat.card import CardEnc, EncType

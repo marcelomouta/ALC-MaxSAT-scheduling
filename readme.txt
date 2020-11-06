@@ -4,6 +4,9 @@ Group 9:
 89513 Nikoletta Matsur
 98812 Marcelo Mouta
 
+Consider an input file named job.sms. Run our project as follows:
+        ./proj1 < job.sms > solution.txt
+
 To solve the Single Machine Scheduling Problem we decided to use the Python
 language and the RC-2 solver from the pysat library.
 
