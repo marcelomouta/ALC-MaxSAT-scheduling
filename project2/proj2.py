@@ -176,14 +176,13 @@ def solve(tasks, max_deadline, accumulated_ki):
         ki = tasks[i][KI_INDEX] - 1
         (_, _, lst) = tasks[i][FRAGMENTS_INDEX][ki]
         s.add_soft(x[i][ki] <= lst, weight=1)
-        s.add(Implies(x[i][ki] > lst, x[i][ki] > max_deadline))
 
     s.check()
     sol = s.model()
     return sol, x
 
 
-def produce_output(solution, x, max_deadline):
+def produce_output(solution, x, max_deadline, tasks):
 
     num_tasks = len(x)
     executed_tasks = 0
@@ -191,8 +190,11 @@ def produce_output(solution, x, max_deadline):
     line = ""
     for i in range(num_tasks):
 
-        last_frag = x[i][-1]  # x_i_j
-        if solution[last_frag].as_long() < max_deadline:
+        ki = tasks[i][KI_INDEX] - 1
+        (pij, est, lst) = tasks[i][FRAGMENTS_INDEX][ki]
+        last_frag = x[i][ki]  # x_i_j
+
+        if solution[last_frag].as_long() <= lst:
 
             executed_tasks += 1
             line += str(i + 1)
@@ -210,4 +212,4 @@ if __name__ == "__main__":
 
     solution, x = solve(tasks, max_deadline, accumulated_ki)
 
-    produce_output(solution, x, max_deadline)
+    produce_output(solution, x, max_deadline, tasks)
