@@ -170,9 +170,10 @@ def solve(tasks, max_deadline, accumulated_ki):
                 for t2 in range(t + 1, t + pij):
 
                     for i2 in range(num_tasks):
-                        ki2 = tasks[i2][KI_INDEX]
-                        for j2 in range(ki2):
-                            if (i2, j2) != (i, j):
+                        if i2 != i:
+
+                            ki2 = tasks[i2][KI_INDEX]
+                            for j2 in range(ki2):
 
                                 (_, est2, lst2) = tasks[i2][FRAGMENTS_INDEX][j2]
 
