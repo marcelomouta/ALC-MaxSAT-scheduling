@@ -1,26 +1,26 @@
-ALC 1st Project – Single Machine Scheduling with MaxSAT
+ALC 2nd Project – Single Machine Scheduling with SMT
 
 Group 9:
 89513 Nikoletta Matsur
 98812 Marcelo Mouta
 
 Consider an input file named job.sms. Run our project as follows:
-        ./proj1 < job.sms > solution.txt
+        ./proj2 < job.sms > solution.txt
 
 To solve the Single Machine Scheduling Problem we decided to use the Python
-language and the RC-2 solver from the pysat library.
+language and the Z3 Optimizer from the z3-solver library.
 
-First we start by modeling the input to a 3D matrix named x, so that a variable 
-in the position x[i][j][t], or simply X_ijt, assigned to '1' or 'True' means 
-that the fragment j from task i starts in t.
+First we start by modeling the input to a 2D matrix named x, so that a variable 
+in the position x[i][j], or simply X_i_j, assigned to 'n' means 
+that the fragment j from task i starts in n.
 
 There also are a few more variables that were used throughout the project:
 
 +--------------+-------------------------------------------------------+
 | Variable     | Meaning                                               |
 |--------------|-------------------------------------------------------+
-| EST_ij       | Earliest Start Time for the fragment j of the task i  |
-| LST_ij       | Latest Start Time for the fragment j of the task i    |
+| est_ij       | Earliest Start Time for the fragment j of the task i  |
+| lst_ij       | Latest Start Time for the fragment j of the task i    |
 | max_deadline | Latest deadline from all tasks                        |
 +-------------+--------------------------------------------------------+
 
@@ -28,62 +28,42 @@ NOTE: As there are mixed deadlines, the time that a fragment j from the task i
 could potentially be executed, will correspond the interval {EST_ij .. LST_j}, 
 which we refer to as the "possible time".
 
-Then, we proceed to specify the constraints. Given that we decided to solve the 
-problem with MaxSAT, there will be soft clauses (clauses that can be left 
-unsatisfied and the problem still be satisfiable) and hard clauses (clauses 
-that must be satisfied). Having this said, we now present the constraint we 
-used to get to our hard clauses:
+Then, we proceed to specify the constraints. Given that the problem is solved
+with SMT, there are hard clauses (clauses that must be satisfied) but we also
+added soft clauses (clauses that can be left unsatisfied and the problem still
+be satisfiable) so that the checker doesn't return unsat. Having this said, we
+now present the constraint we used to get to our hard clauses:
 
-CONSTRAINT (0):
-For all i in {i..n}, and j in {1..ki} and EST_ij <= t <= LST_ij:
-        Sum(X_ijt) <= 1
-Explanation: At most, only one fragment starts at each time t
-
-CONSTRAINT (1)
-For all i in {1..n},  for all j in {1..ki} :
-        Sum(X_i,j,EST_ij, ... , X_i,j,LST_ij) <= 1
-Explanation: Each fragment may only be executed at most once
+CONSTRAINT (1):
+For each i in {1..n}:
+        x_i_1 >= ri
+Explanation: a task must start at or after it's release time
 
 CONSTRAINT (2):
-For all i in {1..n}, and j in {1..ki}, and t in {0..EST_ij - 1} U
-{LST_ij + 1  .. max_deadline - 1} :
-        ~X_ijt
-Explanation: Each fragment of a task may only start between its EST and LST
+        (x_i_j + pij <= x_i2_j2) || (x_i2_j2 + pij2) <= x_i_j
+Explanation: Explanation: There can't be two fragments being executed at the
+same time
 
 CONSTRAINT (3):
-For all i, i' in {1..n}, j, j' in {1..ki}, t' in {t + 1 .. t + pij -1} and t in 
-{EST_ij' .. LST_ij'}:
-        X_ijt -> ~X_i'j't' 
-Explanation: If a fragment j starts at t, there can't be a fragment j' starting 
-at the following t' (while j is still being executed)
+For each i in {1..n},  and d in dependencies_i :
+        x_i,1 >= (X_d,ki' + pki') AND 
+        if (x_d,ki' > lst_dki) => (x_i,1 > NOT_STARTING)
+Explanation: If a task has a dependency, its' first fragment may only start after the last fragment of the dependency finished
+
 
 CONSTRAINT (4):
-For all i in {1..n}, d in dependencies_i, and t in {EST_i1 .. LST_i1} :
-    X_i,1,t -> (X_d,ki',ESTki' V .. V X_d,ki',t-pki')
-Explanation: If a task i has a dependency d, its' first fragment X_i,1,t may 
-only start after the last fragment, ki', of the dependency finished at a time 
-in t
-
-CONSTRAINT (5):
-With ki > 1, and for all i in {1..n} and t in {EST_i1 .. LST_i1}
-    X_i,1,t -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki)
-Explanation: If a tasks first fragment is executed, its' last fragment must also
-be executed, in their possible time 
-
-CONSTRAINT (6):
-For all i in {1..n}, j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
-    X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
-Explanation: If a fragment j+1 is executed, fragment j is also executed, in 
-their possible time
+For each i in {1..n}, and j in {1..ki-1}, and t in {est_ij+1 .. lst_ij+1} :
+        x_i,j+1 >= x_i,j + pij
+Explanation: If a fragment j+1 is executed, fragment j is also executed
 
 
 Our solution only resorted to one constraint that produces soft clauses, which 
 is the following:
 
-CONSTRAINT (7):
-For all i in {1..n} and some j in {1..ki} and t in {EST_ij .. LST_ij}:
-        Sum(X_ijt) >= 1
-Explanation: At least a fragment of each task is executed in its' possible time
+CONSTRAINT (5):
+For all i in {1..n} and some j in {1..ki}:
+    x_i_j <= lst_ij
+Explanation: The last fragment of each task is executed on its possible time
 
 Given this formulation we consider that these constraints are sufficient to 
 produce correct output, that is, to show the maximum number of scheduled tasks.
