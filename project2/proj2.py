@@ -107,7 +107,7 @@ def solve(tasks, max_deadline, accumulated_ki):
         # CONSTRAINT (1):
         # For each i in {1..n}:
         # x_i_1 >= ri
-        # Explanation: make sure that a task starts at or after it's release time
+        # Explanation: a task must start at or after it's release time
         s.add(x[i][0] >= tasks[i][RI_INDEX])
 
         ki = tasks[i][KI_INDEX]
@@ -117,7 +117,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
             # CONSTRAINT (2):
             # x_i_j + pij <= x_i2_j2 || x_i2_j2 + pij2 <= x_i_j
-            # Explanation: If a fragment j starts at t, there can't be none starting at the following t'
+            # Explanation: There can't be two fragments being executed at the same time
             for i2 in range(num_tasks):
                 if (
                     i2 != i
@@ -142,8 +142,8 @@ def solve(tasks, max_deadline, accumulated_ki):
 
         # CONSTRAINT (3):
         # For each i in {1..n},  and d in dependencies_i :
-        # (X_i,1) >= (X_d,ki' + pki') AND if (X_d,ki' > lst_ki => X_i,1 = NOT_STARTING)
-        # Explanation: If a task has a dependency, its' first fragment may only start after the last fragment of the dependency finished
+        # (x_i,1) >= (x_d,ki' + pki') AND if (x_d,ki' > lst_ki => x_i,1 > NOT_STARTING)
+        # Explanation: If a task has a dependency, it's first fragment may only start after the last fragment of the dependency finished
         frag_1 = tasks[i][FRAGMENTS_INDEX][0]
         (_, est, lst) = frag_1
 
@@ -159,7 +159,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
         # CONSTRAINT (4):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
-        # X_i,j+1 >= X_i,j + pij
+        # x_i,j+1 >= x_i,j + pij
         # Explanation: If a fragment j+1 is executed, fragment j is also executed
         for j in range(tasks[i][KI_INDEX] - 1):
             frag_j = tasks[i][FRAGMENTS_INDEX][j]
@@ -171,7 +171,7 @@ def solve(tasks, max_deadline, accumulated_ki):
     # SOFT CLAUSES
     # For each i in {1..n} and some j in {1..ki}:
     # x_i_j <= lst
-    # Explanation: A fragment of each task starts
+    # Explanation: The last fragment of each task is executed on time
     for i in range(num_tasks):
         ki = tasks[i][KI_INDEX] - 1
         (_, _, lst) = tasks[i][FRAGMENTS_INDEX][ki]
