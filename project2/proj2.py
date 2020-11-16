@@ -87,12 +87,9 @@ def parse_input():
     return tasks, max_deadline, accumulated_ki
 
 
-def solve(tasks, max_deadline, accumulated_ki):
+def iterative_solve(tasks, max_deadline, accumulated_ki):
 
-    NOT_STARTING = max_deadline
     num_tasks = len(tasks)
-    s = Optimize()
-
     executing_tasks = []
     # intialize variables x, x_i_j -> start time of fragment j from task i
     x = [[] for _ in range(num_tasks)]
@@ -101,6 +98,26 @@ def solve(tasks, max_deadline, accumulated_ki):
         for j in range(tasks[i][KI_INDEX]):
             name = f"x_{i}_{j}"
             x[i] += [Int(name)]
+
+    lb = 0
+    ub = len(tasks) + 1
+
+    while lb < ub - 1:
+        m = int((lb + ub) / 2)
+        s = solve(tasks, max_deadline, x, executing_tasks, m)
+        if s.check() == unsat:
+            ub = m
+        else:
+            lb = m
+            model = s.model()
+
+    return model, x, executing_tasks
+
+
+def solve(tasks, max_deadline, x, executing_tasks, optimal_tasks):
+
+    num_tasks = len(tasks)
+    s = Solver()
 
     # Each task will be represented as: (ri, pi, di, ki, [fragments], [dependencies])
     # Each fragment j of the task i is a tuple: (pij, EST, LST)
@@ -179,11 +196,13 @@ def solve(tasks, max_deadline, accumulated_ki):
         (_, _, lst) = tasks[i][FRAGMENTS_INDEX][ki]
         # s.add_soft(x[i][ki] <= lst, weight=1)
         s.add(Implies(x[i][ki] > lst, executing_tasks[i] == False))
-        s.add_soft(executing_tasks[i] == True)
+        s.add(AtLeast(*executing_tasks, optimal_tasks))
+        # s.add_soft(executing_tasks[i] == True)
 
-    s.check()
-    sol = s.model()
-    return sol, x, executing_tasks
+    return s
+
+    # sol = s.model()
+    # return sol, x, executing_tasks
 
 
 def produce_output(solution, x, executing_tasks):
@@ -210,6 +229,8 @@ if __name__ == "__main__":
 
     tasks, max_deadline, accumulated_ki = parse_input()
 
-    solution, x, executing_tasks = solve(tasks, max_deadline, accumulated_ki)
+    solution, x, executing_tasks = iterative_solve(tasks, max_deadline, accumulated_ki)
+
+    # solution, x, executing_tasks = solve(tasks, max_deadline, accumulated_ki)
 
     produce_output(solution, x, executing_tasks)
