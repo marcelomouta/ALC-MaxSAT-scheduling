@@ -93,9 +93,11 @@ def solve(tasks, max_deadline, accumulated_ki):
     num_tasks = len(tasks)
     s = Optimize()
 
+    executing_tasks = []
     # intialize variables x, x_i_j -> start time of fragment j from task i
     x = [[] for _ in range(num_tasks)]
     for i in range(num_tasks):
+        executing_tasks.append(Bool(f"y_{i}"))
         for j in range(tasks[i][KI_INDEX]):
             name = f"x_{i}_{j}"
             x[i] += [Int(name)]
@@ -154,7 +156,7 @@ def solve(tasks, max_deadline, accumulated_ki):
             (pki, est_ki, lst_ki) = frag_ki
 
             s.add(x[i][0] >= x[dep][ki] + pki)
-            s.add(Implies(x[dep][ki] > lst_ki, x[i][0] > NOT_STARTING))
+            s.add(Implies(x[dep][ki] > lst_ki, executing_tasks[i] == False))
             # if the last fragment from dependency starts after the task's deadline, do not start task
 
         # CONSTRAINT (4):
