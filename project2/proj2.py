@@ -42,10 +42,6 @@ def parse_input():
 
     max_deadline = 0
 
-    # list containing the accumulated sum of ki at task i
-    ki_sum = 0
-    accumulated_ki = [ki_sum]
-
     for i in range(num_tasks):
 
         description = task_descriptions[i]
@@ -54,9 +50,6 @@ def parse_input():
         t_frags = description[FRAGMENTS_INDEX:]
 
         max_deadline = max(max_deadline, task_variables[DI_INDEX])
-
-        ki_sum += task_variables[KI_INDEX]
-        accumulated_ki.append(ki_sum)
 
         # Each fragment j of the task i is a tuple: (pij, EST, LST)
         # where EST/LST respresents the earliest/latest start time of j
@@ -84,10 +77,10 @@ def parse_input():
 
         tasks.append(tuple(task_variables))
 
-    return tasks, max_deadline, accumulated_ki
+    return tasks, max_deadline
 
 
-def solve(tasks, max_deadline, accumulated_ki):
+def solve(tasks, max_deadline):
 
     NOT_STARTING = max_deadline
     num_tasks = len(tasks)
@@ -208,8 +201,8 @@ def produce_output(solution, x, max_deadline, tasks):
 
 if __name__ == "__main__":
 
-    tasks, max_deadline, accumulated_ki = parse_input()
+    tasks, max_deadline = parse_input()
 
-    solution, x = solve(tasks, max_deadline, accumulated_ki)
+    solution, x = solve(tasks, max_deadline)
 
     produce_output(solution, x, max_deadline, tasks)
