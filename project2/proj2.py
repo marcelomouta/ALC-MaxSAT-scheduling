@@ -1,7 +1,7 @@
 """
 ALC 2nd Project – Single Machine Scheduling with SMT
 
-Group 9:
+Group 13:
 89513 Nikoletta Matsur
 98812 Marcelo Mouta
 """
@@ -147,7 +147,7 @@ def solve(tasks, max_deadline):
             (pki, est_ki, lst_ki) = frag_ki
 
             s.add(x[i][0] >= x[dep][ki] + pki)
-            s.add(Implies(x[dep][ki] > lst_ki, x[i][0] > NOT_STARTING))
+            s.add(Implies(x[dep][ki] > lst_ki, x[i][0] >= NOT_STARTING))
             # if the last fragment from dependency starts after the task's deadline, do not start task
 
         # CONSTRAINT (4):

@@ -1,6 +1,6 @@
 ALC 2nd Project – Single Machine Scheduling with SMT
 
-Group 9:
+Group 13:
 89513 Nikoletta Matsur
 98812 Marcelo Mouta
 
