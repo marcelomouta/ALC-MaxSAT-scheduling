@@ -6,9 +6,8 @@ Group 13:
 98812 Marcelo Mouta
 """
 
-# from z3 import Optimize, And, Implies
-# from z3 import Int
-from z3 import *
+from z3 import Optimize, Or, Implies
+from z3 import Int
 from itertools import accumulate
 
 import sys
