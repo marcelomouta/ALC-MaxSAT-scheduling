@@ -145,9 +145,13 @@ def solve(tasks, max_deadline):
             frag_ki = tasks[dep][FRAGMENTS_INDEX][ki]
             (pki, est_ki, lst_ki) = frag_ki
 
-            s.add(x[i][0] >= x[dep][ki] + pki)
-            s.add(Implies(x[dep][ki] > lst_ki, x[i][0] >= NOT_STARTING))
-            # if the last fragment from dependency starts after the task's deadline, do not start task
+            if i + 1 not in tasks[dep][DEPENDENCIES_INDEX]:
+                s.add(x[i][0] >= x[dep][ki] + pki)
+                # if the last fragment from dependency starts after the task's deadline, do not start task
+                s.add(Implies(x[dep][ki] > lst_ki, x[i][0] >= NOT_STARTING))
+            else:
+                # task i and d are mutually dependant so i can't be executed
+                s.add(x[i][0] >= NOT_STARTING)
 
         # CONSTRAINT (4):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
