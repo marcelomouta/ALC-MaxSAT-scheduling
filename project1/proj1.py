@@ -204,25 +204,7 @@ def solve(tasks, max_deadline, accumulated_ki):
 
                 solver.add_clause(lits)
 
-        # CONSTRAINT (5)
-        # (X_i,1,t) -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki) [with ki > 1, and for all t in {EST_i1 .. LST_i1}]
-        # Explanation: If a tasks first fragment is executed, the last one must be as well:
-        if ki > 1:
-            (pi_1, EST_1, LST_1) = tasks[i][FRAGMENTS_INDEX][0]
-            (pi_ki, EST_ki, LST_ki) = tasks[i][FRAGMENTS_INDEX][-1]
-
-            for t in range(EST_1, LST_1 + 1):
-                # ki cannot start before frag 1 is finished (t+pi1) or before EST_ki
-                ki_min_start_time = max(t + pi_1, EST_ki)
-
-                possible_kis = [
-                    x[i][-1][t2] for t2 in range(ki_min_start_time, LST_ki + 1)
-                ]
-                # ~X_t,i,1  V  X_mint2,i,ki V .. V X_LSTki,i,ki
-                const = [-x[i][0][t]] + possible_kis
-                solver.add_clause(const)
-
-        # CONSTRAINT (6):
+        # CONSTRAINT (5):
         # For each i in {1..n}, and j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
         # X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
         # Explanation: If a fragment j+1 is executed, fragment j is also executed
@@ -259,6 +241,7 @@ def produce_output(solution, num_scheduled_tasks, accumulated_ki):
 
     # accumulated_ki = [0,3,5,7,9]
     current_task = 0
+    last_fragment = None
 
     line = str(num_scheduled_tasks)
     for v in solution:
@@ -272,11 +255,21 @@ def produce_output(solution, num_scheduled_tasks, accumulated_ki):
                 new_task = True
 
             if new_task:
-                print(line)
-                line = str(current_task)
+                last_fragment_is_executed = (
+                    last_fragment == None
+                    or last_fragment == accumulated_ki[last_task] - 1
+                )
+                if last_fragment_is_executed:
+                    print(line)
+                    line = str(current_task)
+                else:
+                    line = ""
 
             t = (v - 1) % max_deadline
             line += " " + str(t)
+
+            last_fragment = fragment_number
+            last_task = current_task
 
     print(line)
 

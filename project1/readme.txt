@@ -65,12 +65,6 @@ only start after the last fragment, ki', of the dependency finished at a time
 in t
 
 CONSTRAINT (5):
-With ki > 1, and for all i in {1..n} and t in {EST_i1 .. LST_i1}
-    X_i,1,t -> (X_i,ki,t+pi1 V .. V X_i,ki,LSTki)
-Explanation: If a tasks first fragment is executed, its' last fragment must also
-be executed, in their possible time 
-
-CONSTRAINT (6):
 For all i in {1..n}, j in {1..ki-1}, and t in {EST_ij+1 .. LST_ij+1} :
     X_i,j+1,t -> (X_i,j,ESTij V .. V X_i,j,t-pij)
 Explanation: If a fragment j+1 is executed, fragment j is also executed, in 
@@ -80,7 +74,7 @@ their possible time
 Our solution only resorted to one constraint that produces soft clauses, which 
 is the following:
 
-CONSTRAINT (7):
+CONSTRAINT (6):
 For all i in {1..n} and some j in {1..ki} and t in {EST_ij .. LST_ij}:
         Sum(X_ijt) >= 1
 Explanation: At least a fragment of each task is executed in its' possible time
