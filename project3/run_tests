@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -v #echo on
+ ./proj3 < job.sms > solution.txt
+ ./proj3 < ../tests/t1_d.sms > ../tests/t1_d.txt
+ ./proj3 < ../tests/t1.sms > ../tests/t1.txt
+ ./proj3 < ../tests/t2_d.sms > ../tests/t2_d.txt
+ ./proj3 < ../tests/t2.sms > ../tests/t2.txt
+ ./proj3 < ../tests/t3_d.sms > ../tests/t3_d.txt
+# ./proj3 < ../tests/t3.sms > ../tests/t3.txt
+# ./proj3 < ../tests/t4_d.sms > ../tests/t4_d.txt
+# ./proj3 < ../tests/t4.sms > ../tests/t4.txt
+# ./proj3 < ../tests/t5.sms > ../tests/t5.txt

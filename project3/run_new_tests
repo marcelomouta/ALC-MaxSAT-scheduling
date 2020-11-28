@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for f in ../new-tests/*.sms; do
+    echo $f
+    ./proj3 < $f > ${f%.sms}.txt
+done
