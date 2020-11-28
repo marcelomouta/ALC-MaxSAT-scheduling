@@ -11,15 +11,15 @@ int: num_frags = accumulated_ki[num_tasks+1];
 
 
 % array[1..num_tasks] of var set of int: x = [{ "x_\(i)_\(j)" | j in 1..num_frags_task_i(i)} | i in 1..num_tasks];
-array[1..num_frags] of var int: x;
+array[1..num_frags] of var 0..max_deadline: x;
 
 function int: num_frags_task_i(int: i) = accumulated_ki[i+1] - accumulated_ki[i];
 function int: frag_ij_index(int: i, int: j) = accumulated_ki[i] + j;
 function int: ki_index(int: i) = accumulated_ki[i+1];
 
 predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index(i2,j2)] < lst[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]) /\ (est[frag_ij_index(i,j)] < lst[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]);
-predicate task_is_executed(int: i) = x[ki_index(i)] <= lst[ki_index(i)];
-
+% predicate task_is_executed(int: i) = x[ki_index(i)] <= lst[ki_index(i)];
+predicate task_is_executed(int: i) = forall(j in 1..num_frags_task_i(i)) (x[frag_ij_index(i,j)] <= lst[frag_ij_index(i,j)]);
 
 % CONSTRAINT (1):
 % For each i in {1..n}:
@@ -34,10 +34,10 @@ constraint forall(i in 1..num_tasks) (
 % Explanation: There can't be two fragments being executed at the same time
 
 constraint forall(i in 1..num_tasks) (
-            forall(j in 1..num_frags_task_i(i)) (
+            forall(j in 1..num_frags_task_i(i) where x[frag_ij_index(i,j)] != max_deadline) (
                 forall(i2 in 1..num_tasks) (
                     if (i2 != i) /\ (not (i2 in deps[i])) /\ (not (i in deps[i2])) then
-                        forall(j2 in 1..num_frags_task_i(i2)) (
+                        forall(j2 in 1..num_frags_task_i(i2)  where x[frag_ij_index(i,j)] != max_deadline) (
                             if frags_intercept(i,j,i2,j2) then
 
                                 ((x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)] )<=  x[frag_ij_index(i2,j2)]) \/ ((x[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]) <=  x[frag_ij_index(i,j)])
@@ -74,12 +74,11 @@ constraint forall(i in 1..num_tasks) (
 % For each i in {1..n},  and d in dependencies_i :
 % (x_i,1) >= (x_d,ki' + pki') AND if (x_d,ki' > lst_ki => x_i,1 > NOT_STARTING)
 % Explanation: If a task has a dependency, it's first fragment may only start after the last fragment of the dependency finished
-constraint forall(i in 1..num_tasks) (
+constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] != max_deadline) (
             forall(d in deps[i]) (
-                if not (i in deps[d]) then
+                if not (i in deps[d]) /\  (x[ki_index(d)] <= lst[ki_index(d)]) then
                     (x[frag_ij_index(i,1)] >= x[ki_index(d)] + pij[ki_index(d)])
-                    /\ ((x[ki_index(d)] > lst[ki_index(d)]) -> (x[frag_ij_index(i,1)] >= max_deadline))
-                else x[frag_ij_index(i,1)] >= max_deadline
+                else x[frag_ij_index(i,1)] = max_deadline
                 endif
             )
 );
@@ -105,7 +104,11 @@ constraint forall(i in 1..num_tasks) (
 % Explanation: If a fragment j+1 is executed, fragment j is also executed
 constraint forall(i in 1..num_tasks) (
             forall(j in 1..(num_frags_task_i(i) - 1)) (
-                x[frag_ij_index(i,j+1)] >=  x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]
+                if x[frag_ij_index(i,j)] != max_deadline then
+                    x[frag_ij_index(i,j+1)] >=  x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]
+                else
+                    x[frag_ij_index(i,j+1)] = max_deadline
+                endif
             )
 );
 
