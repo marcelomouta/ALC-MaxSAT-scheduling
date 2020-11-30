@@ -18,25 +18,26 @@ function int: frag_ij_index(int: i, int: j) = accumulated_ki[i] + j;
 function int: ki_index(int: i) = accumulated_ki[i+1];
 
 predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index(i2,j2)] < lst[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]) /\ (est[frag_ij_index(i,j)] < lst[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]);
-predicate task_is_executed(int: i) = forall(j in 1..num_frags_task_i(i)) (-1+x[frag_ij_index(i,j)] <= lst[frag_ij_index(i,j)] /\ x[frag_ij_index(i,j)] != 0);
+predicate task_is_executed(int: i) = forall(j in 1..num_frags_task_i(i)) (-1+x[frag_ij_index(i,j)] <= lst[frag_ij_index(i,j)] /\ x[frag_ij_index(i,j)] > 0);
+% predicate task_is_executed(int: i) = (-1+x[ki_index(i)] <= lst[ki_index(i)] /\ x[ki_index(i)] > 0);
 
 % CONSTRAINT (1):
 % For each i in {1..n}:
 %   x_i_1 >= ri
 % Explanation: a task must start at or after it's release time
-constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] != 0) (
+constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] > 0) (
     -1+x[frag_ij_index(i,1)] >= ri[i]
 );
 
 % CONSTRAINT (2):
 % x_i_j + pij <= x_i2_j2 || x_i2_j2 + pij2 <= x_i_j
 % Explanation: There can't be two fragments being executed at the same time
-constraint alldifferent_except_0(x);
+% constraint alldifferent_except_0(x);
 constraint forall(i in 1..num_tasks) (
-            forall(j in 1..num_frags_task_i(i) where x[frag_ij_index(i,j)] != 0) (
+            forall(j in 1..num_frags_task_i(i) where x[frag_ij_index(i,j)] > 0) (
                 forall(i2 in 1..num_tasks) (
                     if (i2 != i) /\ (not (i2 in deps[i])) /\ (not (i in deps[i2])) then
-                        forall(j2 in 1..num_frags_task_i(i2)  where x[frag_ij_index(i2,j2)] != 0) (
+                        forall(j2 in 1..num_frags_task_i(i2)  where x[frag_ij_index(i2,j2)] > 0) (
                             if frags_intercept(i,j,i2,j2) then
 
                                 ((-1+x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)] )<=  -1+x[frag_ij_index(i2,j2)]) \/ ((-1+x[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]) <=  -1+x[frag_ij_index(i,j)])
@@ -51,9 +52,9 @@ constraint forall(i in 1..num_tasks) (
 % For each i in {1..n},  and d in dependencies_i :
 % (x_i,1) >= (x_d,ki' + pki') AND if (x_d,ki' > lst_ki => x_i,1 > NOT_STARTING)
 % Explanation: If a task has a dependency, it's first fragment may only start after the last fragment of the dependency finished
-constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] != 0) (
+constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] > 0) (
             forall(d in deps[i]) (
-                if not (i in deps[d]) /\  (-1+x[ki_index(d)] <= lst[ki_index(d)]) /\ x[ki_index(d)] != 0 then
+                if not (i in deps[d]) /\  (-1+x[ki_index(d)] <= lst[ki_index(d)]) /\ x[ki_index(d)] > 0 then
                     (-1+x[frag_ij_index(i,1)] >= -1+x[ki_index(d)] + pij[ki_index(d)])
                 else 
                     x[frag_ij_index(i,1)] = 0
@@ -67,8 +68,12 @@ constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] != 0) (
 % Explanation: If a fragment j+1 is executed, fragment j is also executed
 constraint forall(i in 1..num_tasks) (
             forall(j in 1..(num_frags_task_i(i) - 1)) (
-                if x[frag_ij_index(i,j)] != 0 then
-                    -1+x[frag_ij_index(i,j+1)] >=  -1+x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]
+                if x[frag_ij_index(i,j)] > 0 then
+                    if x[frag_ij_index(i,j+1)] > 0 then
+                        -1+x[frag_ij_index(i,j+1)] >=  -1+x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]
+                    else
+                        x[frag_ij_index(i,j)] = 0
+                    endif
                 else
                     x[frag_ij_index(i,j+1)] = 0
                 endif
@@ -80,7 +85,7 @@ solve maximize s;
 
 output["\(s)"];
 
-output[if j==1 then "\n" ++ show(i) else "" endif ++  " " ++ show(-1+x[frag_ij_index(i,j)])| i in 1..num_tasks, j in 1..num_frags_task_i(i) where fix(x[accumulated_ki[i+1]]) != 0 %<= fix(lst[accumulated_ki[i+1]])
+output[if j==1 then "\n" ++ show(i) else "" endif ++  " " ++ show(-1+x[frag_ij_index(i,j)])| i in 1..num_tasks, j in 1..num_frags_task_i(i) where fix(x[accumulated_ki[i+1]]) > 0 /\ -1+fix(x[accumulated_ki[i+1]]) <= lst[accumulated_ki[i+1]]
 ];
 
 
