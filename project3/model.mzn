@@ -18,15 +18,15 @@ function int: frag_ij_index(int: i, int: j) = accumulated_ki[i] + j;
 function int: ki_index(int: i) = accumulated_ki[i+1];
 
 predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index(i2,j2)] < lst[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]) /\ (est[frag_ij_index(i,j)] < lst[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]);
-predicate task_is_executed(int: i) = forall(j in 1..num_frags_task_i(i)) (-1+x[frag_ij_index(i,j)] <= lst[frag_ij_index(i,j)] /\ x[frag_ij_index(i,j)] > 0);
+predicate task_is_executed(int: i) = forall(j in 1..num_frags_task_i(i)) ( x[frag_ij_index(i,j)] > 0);
 % predicate task_is_executed(int: i) = (-1+x[ki_index(i)] <= lst[ki_index(i)] /\ x[ki_index(i)] > 0);
 
 % CONSTRAINT (1):
 % For each i in {1..n}:
 %   x_i_1 >= ri
 % Explanation: a task must start at or after it's release time
-constraint forall(i in 1..num_tasks where x[frag_ij_index(i,1)] > 0) (
-    -1+x[frag_ij_index(i,1)] >= ri[i]
+constraint forall(i in 1..num_tasks) (
+    (-1+x[frag_ij_index(i,1)] >= ri[i] /\ -1+x[ki_index(i)] <= lst[ki_index(i)])  \/ (x[frag_ij_index(i,1)] = 0 /\ x[ki_index(i)] = 0)
 );
 
 % CONSTRAINT (2):
@@ -80,7 +80,7 @@ constraint forall(i in 1..num_tasks) (
             )
 );
 
-var int: s = sum(i in 1..num_tasks) (bool2int(task_is_executed(i)));
+var 1..num_tasks: s = sum(i in 1..num_tasks) (bool2int(task_is_executed(i)));
 solve maximize s;
 
 output["\(s)"];
