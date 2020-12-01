@@ -81,7 +81,8 @@ constraint forall(i in 1..num_tasks) (
 );
 
 var 1..num_tasks: s = sum(i in 1..num_tasks) (bool2int(task_is_executed(i)));
-solve maximize s;
+solve %::int_search([s], largest, indomain_split) 
+    maximize s;
 
 output["\(s)"];
 
