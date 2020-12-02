@@ -97,11 +97,11 @@ if __name__ == "__main__":
     data = format_data(num_tasks, max_deadline, accumulated_ki, ri, est, lst, pij, deps)
 
     ps = subprocess.Popen(
-        ("minizinc", "model.mzn", "-"),
+        ("minizinc", "--search-complete-msg", "", "--soln-sep", "", "model.mzn", "-"),
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         encoding="utf-8",
     )
     output, _ = ps.communicate(data)
-    output = output[:-23]
+    output = output[:-1]
     print(output)
