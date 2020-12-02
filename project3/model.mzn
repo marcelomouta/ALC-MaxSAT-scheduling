@@ -1,5 +1,3 @@
-include "alldifferent_except_0.mzn";
-
 int: num_tasks;
 int: max_deadline;
 set of int: accumulated_ki;
@@ -27,7 +25,7 @@ predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index
 constraint forall(i in 1..num_tasks) (
             forall(j in 1..num_frags_task_i(i)) (
                 x[frag_ij_index(i,j)] >= est[frag_ij_index(i,j)] /\ x[frag_ij_index(i,j)] <= lst[frag_ij_index(i,j)] 
-            ) \/ E[i] = 0
+            )
 );  
 
 % CONSTRAINT (2):
@@ -68,12 +66,18 @@ constraint forall(i in 1..num_tasks) (
 constraint forall(i in 1..num_tasks) (
             forall(j in 1..(num_frags_task_i(i) - 1)) (
                 x[frag_ij_index(i,j+1)] >=  x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]
-            ) \/ E[i] = 0
+            )
+);
+
+% Explanation: If a task is not executed, set its fragments times to their est (to further close the domain)
+constraint forall(i in 1..num_tasks) (
+            forall(j in 1..num_frags_task_i(i)) (
+                (E[i] = 0) -> (x[frag_ij_index(i,j)] = est[frag_ij_index(i,j)] )
+            )
 );
 
 var 1..num_tasks: s = sum(i in 1..num_tasks) (E[i]);
-solve %::int_search([s], largest, indomain_split) 
-    maximize s;
+solve maximize s;
 
 output["\(s)"];
 
