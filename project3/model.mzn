@@ -18,7 +18,8 @@ function int: num_frags_task_i(int: i) = accumulated_ki[i+1] - accumulated_ki[i]
 function int: frag_ij_index(int: i, int: j) = accumulated_ki[i] + j;
 function int: ki_index(int: i) = accumulated_ki[i+1];
 
-predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index(i2,j2)] < lst[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]) /\ (est[frag_ij_index(i,j)] < lst[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]);
+predicate frags_intercept(int: i, int: j, int: i2, int: j2) = (est[frag_ij_index(i2,j2)] < lst[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)]) 
+                                                              /\ (est[frag_ij_index(i,j)] < lst[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]);
 
 % CONSTRAINT (1):
 % For all i in {1..n}, j in {1..ki}:
@@ -39,7 +40,8 @@ constraint forall(i in 1..num_tasks) (
                     if (i2 != i) /\ (not (i2 in deps[i])) /\ (not (i in deps[i2])) then
                         forall(j2 in 1..num_frags_task_i(i2)) (
                             if frags_intercept(i,j,i2,j2) /\ E[i] + E[i2] = 2 then
-                                ((x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)] )<=  x[frag_ij_index(i2,j2)]) \/ ((x[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]) <=  x[frag_ij_index(i,j)])
+                                ((x[frag_ij_index(i,j)] + pij[frag_ij_index(i,j)] )<=  x[frag_ij_index(i2,j2)]) 
+                                \/ ((x[frag_ij_index(i2,j2)] + pij[frag_ij_index(i2,j2)]) <=  x[frag_ij_index(i,j)])
                             endif
                         )
                     endif
