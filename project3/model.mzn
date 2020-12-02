@@ -75,9 +75,9 @@ constraint forall(i in 1..num_tasks) (
 % E[i] = 0 -> for all i in {1..n}, and j in {1..ki-1}: x[i,j] = EST_ij
 % Explanation: If a task is not executed, set its fragments times to their est (to further close the domain)
 constraint forall(i in 1..num_tasks) (
-            forall(j in 1..num_frags_task_i(i)) (
-                (E[i] = 0) -> (x[frag_ij_index(i,j)] = est[frag_ij_index(i,j)] )
-            )
+            (E[i] = 0) ->  (forall(j in 1..num_frags_task_i(i)) (
+                                (x[frag_ij_index(i,j)] = est[frag_ij_index(i,j)] )
+                            ))
 );
 
 var 1..num_tasks: s = sum(i in 1..num_tasks) (E[i]);
