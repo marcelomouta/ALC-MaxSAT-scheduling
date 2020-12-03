@@ -32,6 +32,7 @@ constraint forall(i in 1..num_tasks) (
 );  
 
 % CONSTRAINT (2):
+% For all i, i2 in {1..n}, j in {1..ki}, j2 in {1..ki2}:
 % x_i_j + pij <= x_i2_j2 \/ x_i2_j2 + pij2 <= x_i_j
 % Explanation: There can't be two fragments being executed at the same time
 constraint forall(i in 1..num_tasks) (
@@ -51,7 +52,7 @@ constraint forall(i in 1..num_tasks) (
 
 % CONSTRAINT (3):
 % For each i in {1..n},  and d in dependencies_i:
-% IF i and d are not mutual deps /\ E[d] = 1: (x_i,1) >= (x_d,ki' + pki') ELSE E[i] = 0 
+% IF i and d are not mutual deps /\ E[d] = 1: (x_i,1) >= (x_d,kd + pkd') ELSE E[i] = 0 
 % Explanation: If a task has a dependency, it's first fragment may only start after the last fragment of the dependency finished
 constraint forall(i in 1..num_tasks) (
             forall(d in deps[i]) (
