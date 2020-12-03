@@ -1,0 +1,4 @@
+#!/bin/bash
+
+./run_tests
+./run_new_tests
