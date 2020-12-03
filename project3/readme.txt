@@ -1,6 +1,6 @@
 ALC 3rd Project – Single Machine Scheduling with CSP
 
-Group 13:
+Group 14:
 89513 Nikoletta Matsur
 98812 Marcelo Mouta
 

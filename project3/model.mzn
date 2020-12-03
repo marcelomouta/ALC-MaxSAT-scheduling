@@ -1,3 +1,8 @@
+% ALC 3rd Project – Single Machine Scheduling with CSP
+% Group 14:
+% 89513 Nikoletta Matsur
+% 98812 Marcelo Mouta
+
 int: num_tasks;
 int: max_deadline;
 set of int: accumulated_ki;
